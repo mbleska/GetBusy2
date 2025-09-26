@@ -70,11 +70,28 @@ interface ActivityDao {
     @Query("DELETE FROM activities WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+
     @Query("SELECT * FROM activities WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): ActivityItem?
 
     @Query("SELECT * FROM activities WHERE isArchived = 0 ORDER BY updatedAt DESC")
     fun getAll(): Flow<List<ActivityItem>>
+    @Query("""
+        SELECT a.* 
+        FROM activities a
+        WHERE a.isArchived = 0
+          AND NOT EXISTS (
+            SELECT 1
+            FROM activity_tag_join j
+            INNER JOIN tags t ON t.id = j.tagId
+            WHERE j.activityId = a.id
+              AND t.category IS NOT NULL   -- jen systémové tagy
+              AND t.isActive = 0           -- neaktivní
+          )
+        ORDER BY a.updatedAt DESC
+    """)
+    fun getAllHidingInactiveSystemTags(): kotlinx.coroutines.flow.Flow<List<ActivityItem>>
+
 
     @Query("SELECT * FROM activities WHERE isArchived = 0 ORDER BY RANDOM() LIMIT 1")
     suspend fun getRandomAny(): ActivityItem?
@@ -105,6 +122,8 @@ interface ActivityDao {
         LIMIT 1
         """
     )
+
+
     suspend fun getRandomFiltered(
         placeIds: List<Long>,
         placeSize: Int,

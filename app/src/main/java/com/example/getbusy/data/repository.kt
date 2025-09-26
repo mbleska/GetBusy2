@@ -12,6 +12,8 @@ class ActivityRepository(
     // -------------------
 
     fun getAllActivities(): Flow<List<ActivityItem>> = activityDao.getAll()
+    fun getAllActivitiesHidingInactiveSystemTags(): Flow<List<ActivityItem>> =
+        activityDao.getAllHidingInactiveSystemTags()
 
     suspend fun getActivityById(id: Long): ActivityItem? = activityDao.getById(id)
 

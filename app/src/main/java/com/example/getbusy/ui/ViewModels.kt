@@ -146,7 +146,7 @@ class ManageViewModel(
 
     val state: StateFlow<ManageUiState> =
         combine(
-            repo.getAllActivities(),
+            repo.getAllActivitiesHidingInactiveSystemTags(),
             repo.getAllTagsAnyStatus(),
             internal
         ) { activities, tags, local ->
