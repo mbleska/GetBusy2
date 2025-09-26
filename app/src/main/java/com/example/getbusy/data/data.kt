@@ -93,37 +93,58 @@ interface ActivityDao {
     fun getAllHidingInactiveSystemTags(): kotlinx.coroutines.flow.Flow<List<ActivityItem>>
 
 
-    @Query("SELECT * FROM activities WHERE isArchived = 0 ORDER BY RANDOM() LIMIT 1")
+    @Query("""
+    SELECT a.*
+    FROM activities a
+    WHERE a.isArchived = 0
+      AND NOT EXISTS (
+        SELECT 1
+        FROM activity_tag_join j
+        INNER JOIN tags t ON t.id = j.tagId
+        WHERE j.activityId = a.id
+          AND t.category IS NOT NULL
+          AND t.isActive = 0
+      )
+    ORDER BY RANDOM()
+    LIMIT 1
+""")
     suspend fun getRandomAny(): ActivityItem?
+
 
     // Random výběr s OR uvnitř kategorií a AND mezi kategoriemi + povinné user tagy (všechny)
     @Query(
         """
-        SELECT a.* FROM activities a
-        WHERE a.isArchived = 0
-          AND (:placeSize = 0 OR EXISTS (
-                SELECT 1 FROM activity_tag_join j 
-                WHERE j.activityId = a.id AND j.tagId IN (:placeIds)
-          ))
-          AND (:companySize = 0 OR EXISTS (
-                SELECT 1 FROM activity_tag_join j 
-                WHERE j.activityId = a.id AND j.tagId IN (:companyIds)
-          ))
-          AND (:durationSize = 0 OR EXISTS (
-                SELECT 1 FROM activity_tag_join j 
-                WHERE j.activityId = a.id AND j.tagId IN (:durationIds)
-          ))
-          AND (:mustSize = 0 OR (
-                SELECT COUNT(DISTINCT j.tagId) 
-                FROM activity_tag_join j 
-                WHERE j.activityId = a.id AND j.tagId IN (:mustHaveIds)
-          ) = :mustSize)
-        ORDER BY RANDOM()
-        LIMIT 1
-        """
+    SELECT a.* FROM activities a
+    WHERE a.isArchived = 0
+      AND NOT EXISTS (
+        SELECT 1
+        FROM activity_tag_join j
+        INNER JOIN tags t ON t.id = j.tagId
+        WHERE j.activityId = a.id
+          AND t.category IS NOT NULL
+          AND t.isActive = 0
+      )
+      AND (:placeSize = 0 OR EXISTS (
+            SELECT 1 FROM activity_tag_join j 
+            WHERE j.activityId = a.id AND j.tagId IN (:placeIds)
+      ))
+      AND (:companySize = 0 OR EXISTS (
+            SELECT 1 FROM activity_tag_join j 
+            WHERE j.activityId = a.id AND j.tagId IN (:companyIds)
+      ))
+      AND (:durationSize = 0 OR EXISTS (
+            SELECT 1 FROM activity_tag_join j 
+            WHERE j.activityId = a.id AND j.tagId IN (:durationIds)
+      ))
+      AND (:mustSize = 0 OR (
+            SELECT COUNT(DISTINCT j.tagId) 
+            FROM activity_tag_join j 
+            WHERE j.activityId = a.id AND j.tagId IN (:mustHaveIds)
+      ) = :mustSize)
+    ORDER BY RANDOM()
+    LIMIT 1
+    """
     )
-
-
     suspend fun getRandomFiltered(
         placeIds: List<Long>,
         placeSize: Int,
@@ -134,6 +155,7 @@ interface ActivityDao {
         mustHaveIds: List<Long>,
         mustSize: Int
     ): ActivityItem?
+
 }
 
 @Dao
@@ -161,6 +183,14 @@ interface TagDao {
 
     @Query("SELECT * FROM tags WHERE category IS NULL AND isActive = 1 ORDER BY name COLLATE NOCASE")
     fun getAllActiveUserTags(): Flow<List<Tag>>
+    @Query("""
+    SELECT * FROM tags
+    WHERE category IS NOT NULL     -- systémové tagy
+      AND isActive = 1
+    ORDER BY category, name COLLATE NOCASE
+""")
+    fun observeActiveSystemTags(): kotlinx.coroutines.flow.Flow<List<Tag>>
+
 }
 
 @Dao

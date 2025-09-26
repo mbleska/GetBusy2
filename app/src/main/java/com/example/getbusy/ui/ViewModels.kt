@@ -38,14 +38,22 @@ class MainViewModel(
 
     val uiState: StateFlow<MainUiState> =
         combine(filterFlow, triggerRandom, tagsFlow) { filter, _, tags ->
+            val activeIds = tags.map { it.id }.toSet()
+            val cleaned = filter.copy(
+                place = filter.place.filter { it in activeIds }.toSet(),
+                company = filter.company.filter { it in activeIds }.toSet(),
+                duration = filter.duration.filter { it in activeIds }.toSet(),
+                userTags = filter.userTags.filter { it in activeIds }.toSet()
+            )
             MainUiState(
                 isLoading = false,
-                current = null, // will be set by refreshRandom()
-                filter = filter,
+                current = null,
+                filter = cleaned,
                 allActiveTags = tags,
                 error = null
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, MainUiState())
+
 
     fun setFilter(spec: FilterSpec) {
         filterFlow.value = spec
@@ -72,7 +80,17 @@ class MainViewModel(
 
     fun refreshRandom() {
         viewModelScope.launch {
-            val f = filterFlow.value
+            // očistit aktuální filter podle právě aktivních tagů
+            val tags = uiState.value.allActiveTags
+            val activeIds = tags.map { it.id }.toSet()
+            val raw = filterFlow.value
+            val f = raw.copy(
+                place = raw.place.filter { it in activeIds }.toSet(),
+                company = raw.company.filter { it in activeIds }.toSet(),
+                duration = raw.duration.filter { it in activeIds }.toSet(),
+                userTags = raw.userTags.filter { it in activeIds }.toSet()
+            )
+
             val args = f.toRepositoryArgs()
             val item = if (f.isEmpty()) {
                 repo.getRandomAny()
@@ -84,12 +102,12 @@ class MainViewModel(
                     mustHaveIds = args.mustHaveIds
                 )
             }
-            // publish by rebuilding state
             val cur = uiState.value
             val newState = cur.copy(current = item, isLoading = false, error = null)
             _patchState(newState)
         }
     }
+
 
     private val _state = MutableStateFlow(uiState.value)
     private fun _patchState(newState: MainUiState) {

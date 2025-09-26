@@ -285,31 +285,40 @@ fun EditActivityScreen(
 
             Text("Místo", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             TagGroupChips(
-                tags = state.allTagsAnyStatus.filter { it.category == TagCategory.PLACE && it.isActive },
+                tags = state.allTagsAnyStatus.filter {
+                    it.category == TagCategory.PLACE && (it.isActive || it.id in form.selectedTagIds)
+                },
                 selected = form.selectedTagIds,
                 onToggle = { vm.toggleFormTag(it) }
             )
 
             Text("Společnost", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             TagGroupChips(
-                tags = state.allTagsAnyStatus.filter { it.category == TagCategory.COMPANY && it.isActive },
+                tags = state.allTagsAnyStatus.filter {
+                    it.category == TagCategory.COMPANY && (it.isActive || it.id in form.selectedTagIds)
+                },
                 selected = form.selectedTagIds,
                 onToggle = { vm.toggleFormTag(it) }
             )
 
             Text("Délka", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             TagGroupChips(
-                tags = state.allTagsAnyStatus.filter { it.category == TagCategory.DURATION && it.isActive },
+                tags = state.allTagsAnyStatus.filter {
+                    it.category == TagCategory.DURATION && (it.isActive || it.id in form.selectedTagIds)
+                },
                 selected = form.selectedTagIds,
                 onToggle = { vm.toggleFormTag(it) }
             )
 
             Text("Další tagy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             TagGroupChips(
-                tags = state.allTagsAnyStatus.filter { it.category == null && it.isActive },
+                tags = state.allTagsAnyStatus.filter {
+                    it.category == null && (it.isActive || it.id in form.selectedTagIds)
+                },
                 selected = form.selectedTagIds,
                 onToggle = { vm.toggleFormTag(it) }
             )
+
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -12,6 +12,8 @@ class ActivityRepository(
     // -------------------
 
     fun getAllActivities(): Flow<List<ActivityItem>> = activityDao.getAll()
+    fun getActiveSystemTags(): Flow<List<Tag>> =
+        tagDao.observeActiveSystemTags()
     fun getAllActivitiesHidingInactiveSystemTags(): Flow<List<ActivityItem>> =
         activityDao.getAllHidingInactiveSystemTags()
 
